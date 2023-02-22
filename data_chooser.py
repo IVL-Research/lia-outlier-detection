@@ -8,8 +8,12 @@ import glob
 from datetime import datetime
 from datetime import timedelta
 from plotly.subplots import make_subplots
+import plotly.graph_objs as go
 from ipywidgets import interactive, HBox, VBox
-import keras
+# import keras
+import pandas as pd
+import numpy as np
+import random
 
 
 class interactive_data_chooser:
@@ -69,3 +73,37 @@ class interactive_data_chooser:
             plt.figure()
             plt.imshow(plt.imread(row['file']))
             plt.title(f"{row['time']}, wl: {row['wl']}, turb_s: {row['turb_sensor']}, turb_p: {row['turb_post']}")
+
+
+def create_fake_data(n):
+    x = []
+    y1 = []
+    y2 = []
+
+    for _ in range(n):    
+        x_int = random.randint(-1, 101)
+        x.append(x_int)
+        y1_int = random.randint(-1, 101)
+        y1.append(y1_int)
+        y2_int = random.randint(-1, 101)
+        y2.append(y2_int)
+    
+    return x, y1, y2
+
+
+def create_fake_df(n):
+    """
+    Creates a dataframe with n rows and columns x, y1 and y2. 
+    The data is integers 0-100.
+    """
+    x, y1, y2 = create_fake_data(n)
+    int_dict = {"x": x, "y1": y1, "y2": y2}
+    df = pd.DataFrame(int_dict)
+    return df
+
+
+if __name__ == "__main__":
+    df = create_fake_df(500)
+    print(df)
+
+    chooser = interactive_data_chooser(df, df.columns)
