@@ -49,7 +49,7 @@ class interactive_data_chooser:
         # print manual_outlier
         
         scatter = self.f.data[0]
-
+        
         scatter.marker.opacity = 0.5
         
         axis_dropdowns = interactive(self.update_axes, yaxis = self.columns, xaxis = self.columns, color = numeric_columns)
@@ -71,18 +71,20 @@ class interactive_data_chooser:
 
     def selection_fn(self,trace,points,selector):
         temp_df = self.df.loc[points.point_inds]
-
-        # set self.df where index is point_inds to 1
-        print(f"points.points_inds: {points.points_inds}")
         
-        print(f"points: {points}")
+        print("Here")
+        # set self.df where index is point_inds to 1
+        # print(f"points.points_inds: {points.points_inds}")
+        
+        # print(f"points: {points}")
+        
         # something like
         # maybe for i in temp_df:
         # if index == points.points_inds:
         #     self.df["manual_outlier"] == 1
         old_selected_number = len(self.outlier_df)
         self.outlier_df = pd.concat([self.outlier_df, temp_df], ignore_index=True, axis=0)
-        print(f"Selected {len(self.outlier_df) - old_selected_number} new points. Total: {len(self.outlier_df)}")
+        print(f"Selected {len(self.outlier_df) - old_selected_number} new points. Tjohoo! Total: {len(self.outlier_df)}")
 
     def clear_selection(self):
         self.outlier_df = self.outlier_df.iloc[0:0]
