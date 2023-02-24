@@ -24,7 +24,9 @@ class interactive_data_chooser:
     Class for selecting data graphically and displaying it
     """
     def __init__(self, df, columns):
+        # we don't need this dataframe
         self.outlier_df = pd.DataFrame(df, columns)
+
         self.df = df
         self.columns = columns
     
@@ -64,13 +66,27 @@ class interactive_data_chooser:
 
     def selection_fn(self,trace,points,selector):
         temp_df = self.df.loc[points.point_inds]
+
+        # set self.df where index is point_inds to 1
+        
         old_selected_number = len(self.outlier_df)
         self.outlier_df = pd.concat([self.outlier_df, temp_df], ignore_index=True, axis=0)
         print(f"Selected {len(self.outlier_df) - old_selected_number} new points. Total: {len(self.outlier_df)}")
 
     def clear_selection(self):
         self.outlier_df = self.outlier_df.iloc[0:0]
+    
+    def show_selected(self):
+        for index, row in self.outlier_df.iterrows():
+            plt.figure()
+            plt.imshow(plt.imread(row['file']))
+            plt.title(f"{row['time']}, wl: {row['wl']}, turb_s: {row['turb_sensor']}, turb_p: {row['turb_post']}")
 
+    # create train model function based on outlier status in self.df
+
+    # visualize result in graph
+
+    # function to mark point as non-outlier
 
 def create_fake_df(n):
     """
