@@ -5,6 +5,7 @@ import sys
 import os
 import matplotlib.pyplot as plt
 import glob
+
 from datetime import datetime
 from datetime import timedelta
 from plotly.subplots import make_subplots
@@ -14,6 +15,8 @@ from ipywidgets import interactive, HBox, VBox
 import pandas as pd
 import numpy as np
 import random
+from dash import Dash, dcc, html, Input, Output
+import plotly.express as px
 
 
 class interactive_data_chooser:
@@ -67,30 +70,23 @@ class interactive_data_chooser:
 
     def clear_selection(self):
         self.outlier_df = self.outlier_df.iloc[0:0]
-    
-    def show_selected(self):
-        for index, row in self.outlier_df.iterrows():
-            plt.figure()
-            plt.imshow(plt.imread(row['file']))
-            plt.title(f"{row['time']}, wl: {row['wl']}, turb_s: {row['turb_sensor']}, turb_p: {row['turb_post']}")
-
 
 
 def create_fake_df(n):
     """
     Creates a dataframe with n rows and columns "x", "y1" and "y2". 
-    The data is integers 0-100.
+    The data are integers, 0-100.
     """
     x = []
     y1 = []
     y2 = []
 
     for _ in range(n):    
-        x_int = random.randint(-1, 101)
+        x_int = random.randint(0, 100)
         x.append(x_int)
-        y1_int = random.randint(-1, 101)
+        y1_int = random.randint(0, 100)
         y1.append(y1_int)
-        y2_int = random.randint(-1, 101)
+        y2_int = random.randint(0, 100)
         y2.append(y2_int)
 
     int_dict = {"x": x, "y1": y1, "y2": y2}
@@ -103,3 +99,4 @@ if __name__ == "__main__":
     print(df)
 
     chooser = interactive_data_chooser(df, df.columns)
+    chooser.activate_plot()
