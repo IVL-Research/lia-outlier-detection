@@ -29,6 +29,8 @@ class interactive_data_chooser:
 
         self.df = df
         self.columns = columns
+        self.df["manual_outlier"] = "NaN"
+        self.df["model_outlier"] = 0
     
     def activate_plot(self):
         """
@@ -39,10 +41,13 @@ class interactive_data_chooser:
         self.df.reset_index(inplace=True,drop=True)
         numeric_df = self.df.select_dtypes(include=np.number)
         numeric_columns = numeric_df.columns
-        self.f = go.FigureWidget([go.Scatter(y = self.df[self.columns[0]], x = self.df[self.columns[0]], mode = 'markers',
+        self.f = go.FigureWidget([go.Scatter(y = self.df[self.columns[0]], x = self.df[self.columns[1]], mode = 'markers',
                                        selected_marker_color = "red", 
                                              marker=dict(color=numeric_df[numeric_columns[0]],
                                                         colorbar=dict(thickness=10)))])
+        # Somewhere in this method: if manual_outlier not "NaN" and manual_outlier not model_outlier:
+        # print manual_outlier
+        
         scatter = self.f.data[0]
 
         scatter.marker.opacity = 0.5
@@ -68,7 +73,13 @@ class interactive_data_chooser:
         temp_df = self.df.loc[points.point_inds]
 
         # set self.df where index is point_inds to 1
+        print(f"points.points_inds: {points.points_inds}")
         
+        print(f"points: {points}")
+        # something like
+        # maybe for i in temp_df:
+        # if index == points.points_inds:
+        #     self.df["manual_outlier"] == 1
         old_selected_number = len(self.outlier_df)
         self.outlier_df = pd.concat([self.outlier_df, temp_df], ignore_index=True, axis=0)
         print(f"Selected {len(self.outlier_df) - old_selected_number} new points. Total: {len(self.outlier_df)}")
@@ -87,6 +98,10 @@ class interactive_data_chooser:
     # visualize result in graph
 
     # function to mark point as non-outlier
+
+    # button to undo choice
+
+    # button to confirm (then train model), disable if not choosen areas == 1
 
 def create_fake_df(n):
     """
