@@ -29,7 +29,7 @@ class interactive_data_chooser:
 
         self.df = df
         self.columns = columns
-        self.df["manual_outlier"] = "NaN"
+        self.df["manual_outlier"] = -1
         self.df["model_outlier"] = 0
     
     def activate_plot(self):
@@ -70,21 +70,23 @@ class interactive_data_chooser:
         self.outlier_df = pd.DataFrame(columns=self.df.columns.values)
 
     def selection_fn(self,trace,points,selector):
+        """
+        Keeping track of points manually selected and change values in self.df["manual_outlier"].
+        Value for points not manually selected is -1. If selected to be an outlier, value is set to 1.
+        If selected again not to be an outlier, value is set to 0.
+        """
         temp_df = self.df.loc[points.point_inds]
+        for i in temp_df.iterrows():
+            idx = i[0]
+            # Remember when combining with model that manual_outlier should override model_outlier
+            # in the plot if value is not -1. Do a plot_outlier column.
+            self.df.at[idx, "manual_outlier"] = 1 if self.df["manual_outlier"].values[idx] != 1 else 0
         
-        print("Here")
-        # set self.df where index is point_inds to 1
-        # print(f"points.points_inds: {points.points_inds}")
-        
-        # print(f"points: {points}")
-        
-        # something like
-        # maybe for i in temp_df:
-        # if index == points.points_inds:
-        #     self.df["manual_outlier"] == 1
+        print("Before committing")
+        print(self.df)
         old_selected_number = len(self.outlier_df)
         self.outlier_df = pd.concat([self.outlier_df, temp_df], ignore_index=True, axis=0)
-        print(f"Selected {len(self.outlier_df) - old_selected_number} new points. Tjohoo! Total: {len(self.outlier_df)}")
+        print(f"Selected {len(self.outlier_df) - old_selected_number} new points. Total: {len(self.outlier_df)}")
 
     def clear_selection(self):
         self.outlier_df = self.outlier_df.iloc[0:0]
@@ -99,7 +101,7 @@ class interactive_data_chooser:
 
     # visualize result in graph
 
-    # function to mark point as non-outlier
+    # function to mark point as non-outlier DONE
 
     # button to undo choice
 
