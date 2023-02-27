@@ -24,7 +24,7 @@ class interactive_data_chooser:
     Class for selecting data graphically and displaying it
     """
     def __init__(self, df, columns):
-        # we don't need this dataframe
+        # we don't need this dataframe, make a df_copy instead?
         self.outlier_df = pd.DataFrame(df, columns)
 
         self.df = df
@@ -86,14 +86,12 @@ class interactive_data_chooser:
             # Remember when combining with model that manual_outlier should override model_outlier
             # in the plot if value is not -1. Do a plot_outlier column.
             temp_df.at[idx, "last_selected"] = last_selected
-            print("Before manual outlier")
             temp_df.at[idx, "manual_outlier"] = 1 if self.df.at[idx, "manual_outlier"] != 1 else 0
-            print("After manual outlier")
 
         self.outlier_df = pd.concat([self.outlier_df, temp_df], ignore_index=False, axis=0)
         print(f"outlier_df: {self.outlier_df}")
         print(f"temp_df: {temp_df}")
-        # Lägg till antalet sparade punkter för att kunna gå tillbaka rätt antal steg
+        # Kom ihåg att ändra i metodbeskrivningen
         
         print(f"Selected {last_selected} new points. Total: {len(self.outlier_df)}")
 
