@@ -26,6 +26,7 @@ class interactive_data_chooser:
     def __init__(self, df, columns):
         # we don't need this dataframe
         self.outlier_df = pd.DataFrame(df, columns)
+        self.old_selected = 0
 
         self.df = df
         self.columns = columns
@@ -74,19 +75,35 @@ class interactive_data_chooser:
         Keeping track of points manually selected and change values in self.df["manual_outlier"].
         Value for points not manually selected is -1. If selected to be an outlier, value is set to 1.
         If selected again not to be an outlier, value is set to 0.
+
+        Previous value is stored in temp_df if user chooses to undo selection. 
         """
         temp_df = self.df.loc[points.point_inds]
+        # self.temp_df["last_value"] = -1
+        # self.temp_df["last_selected"] = 0
+        print(f"outlier_df before concatenation: {self.outlier_df}")
+        print(f"temp_df: {temp_df}")
+        self.outlier_df = pd.concat([self.outlier_df, temp_df], ignore_index=False, axis=0)
+        print(f"outlier_df after concatenation: {self.outlier_df}")
+        last_selected = len(self.outlier_df) - self.old_selected
+        print(f"old_selected_number:{self.old_selected}")
+        self.old_selected += len(temp_df)
+        print(f"last_selected:{last_selected}")
+        print(f"new old_selected_number:{self.old_selected}")
         for i in temp_df.iterrows():
             idx = i[0]
             # Remember when combining with model that manual_outlier should override model_outlier
             # in the plot if value is not -1. Do a plot_outlier column.
+            # self.temp_df["last_value"].values[idx] = self.df["manual_outlier"].values[idx]
+            i[1]["last_selected"] = last_selected
+            # print(f"i[1]: {i[1]}")
             self.df.at[idx, "manual_outlier"] = 1 if self.df["manual_outlier"].values[idx] != 1 else 0
         
-        print("Before committing")
-        print(self.df)
-        old_selected_number = len(self.outlier_df)
-        self.outlier_df = pd.concat([self.outlier_df, temp_df], ignore_index=True, axis=0)
-        print(f"Selected {len(self.outlier_df) - old_selected_number} new points. Total: {len(self.outlier_df)}")
+        
+        
+        # self.activate_plot()
+        
+        print(f"Selected {last_selected} new points. Total: {len(self.outlier_df)}")
 
     def clear_selection(self):
         self.outlier_df = self.outlier_df.iloc[0:0]
