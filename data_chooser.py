@@ -25,7 +25,7 @@ class interactive_data_chooser:
     """
     def __init__(self, df, columns):
         # we don't need this dataframe, make a df_copy instead?
-        self.outlier_df = pd.DataFrame(df, columns)
+        self.outlier_df = pd.DataFrame()
 
         self.df = df
         self.df_copy = df.copy()
@@ -55,7 +55,7 @@ class interactive_data_chooser:
         
         axis_dropdowns = interactive(self.update_axes, yaxis = self.columns, xaxis = self.columns, color = numeric_columns)
         scatter.on_selection(self.selection_fn)
-
+        
         # Put everything together
         return VBox((HBox(axis_dropdowns.children),self.f))
     
@@ -68,7 +68,7 @@ class interactive_data_chooser:
             self.f.layout.xaxis.title = xaxis
             self.f.layout.yaxis.title = yaxis
 
-        self.outlier_df = pd.DataFrame(columns=self.df_copy.columns.values)
+        # self.outlier_df = pd.DataFrame(columns=self.df_copy.columns.values)
 
     def selection_fn(self,trace,points,selector):
         """
@@ -85,7 +85,7 @@ class interactive_data_chooser:
         for i in temp_df.iterrows():
             idx = i[0]
             # Remember when combining with model that manual_outlier should override model_outlier
-            # in the plot if value is not -1. Do a plot_outlier column.
+            # in the plot if manual_outlier value is not -1. 
             temp_df.at[idx, "last_selected"] = last_selected
             # This is needed for keeping track of the changes
             temp_df.at[idx, "manual_outlier"] = 1 if self.df_copy.at[idx, "manual_outlier"] != 1 else 0
@@ -93,12 +93,15 @@ class interactive_data_chooser:
             self.df_copy.at[idx, "manual_outlier"] = 1 if self.df_copy.at[idx, "manual_outlier"] != 1 else 0
 
         self.outlier_df = pd.concat([self.outlier_df, temp_df], ignore_index=False, axis=0)
-        # print(f"outlier_df: {self.outlier_df}")
-        # print(f"temp_df: {temp_df}")
-        print(f"df_copy: {self.df_copy}")
         # Kom ihåg att ändra i metodbeskrivningen
+        # Fundera på vilka som behöver vara klassvariabler
         
         print(f"Selected {last_selected} new points. Total: {len(self.outlier_df)}")
+        drop_duplicates = self.outlier_df.drop_duplicates(subset=["x", "y1"], keep="last")
+        drop_duplicates.sort_values(by=["x"], inplace=True)
+        print("Unique points selected:")
+        for i in drop_duplicates.iterrows():
+            print(f"x: {int(i[1][0])}, y1: {int(i[1][1])}")
 
     def clear_selection(self):
         self.outlier_df = self.outlier_df.iloc[0:0]
@@ -142,8 +145,4 @@ def create_fake_df(n):
 
 
 if __name__ == "__main__":
-    df = create_fake_df(500)
-    print(df)
-
-    chooser = interactive_data_chooser(df, df.columns)
-    chooser.activate_plot()
+    pass
