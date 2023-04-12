@@ -148,3 +148,4 @@ def create_fake_df(n):
     int_dict = {"x": x, "y1": y1, "y2": y2}
     df = pd.DataFrame(int_dict)
     return df
+
