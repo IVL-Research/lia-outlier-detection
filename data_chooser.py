@@ -17,6 +17,7 @@ import numpy as np
 import random
 from dash import Dash, dcc, html, Input, Output
 import plotly.express as px
+from functools import partial
 
 class interactive_data_chooser:
     """
@@ -33,26 +34,67 @@ class interactive_data_chooser:
         self.df_copy["model_outlier"] = 0
 
         self.axis_dropdowns = None
+        self.chosen_color_column = self.df_copy["manual_outlier"]
+        self.trace1_color = None
+        self.trace2_color = None
     
     def activate_plot(self):
-        """
-        Display interactive plot where images (data points in the plot)
-        can be selected using box select or lasso select. 
-        """
-        # TODO: cmin and cmax depending on chosen_color_column (manual_outlier will always be -1 to 1)
         self.df_copy.reset_index(inplace=True,drop=True)
         numeric_df = self.df_copy.select_dtypes(include=np.number)
         numeric_columns = numeric_df.columns
-        self.f = go.FigureWidget([go.Scatter(y = self.df_copy[self.columns[0]], x = self.df_copy[self.columns[1]], mode = 'markers',
-                                       selected_marker_color = "red", 
-                                             marker=dict(color=numeric_df[numeric_columns[0]],
-                                                        colorbar=dict(thickness=10), colorscale=["blue", "green", "orange"]))])
+
+        # Create the scatter plot with markers and lines for z < 1
+        trace1 = go.Scatter(x=self.df_copy.loc[self.chosen_color_column < 1, 'x'], 
+                                    y=self.df_copy.loc[self.chosen_color_column < 1, 'y1'],
+                                    mode='markers+lines', 
+                                    selected_marker_color = "orange",
+                                    visible=True,
+                                    opacity=1.0,
+                                    marker=dict(size=10, 
+                                                colorscale=["blue", "green"], 
+                                                color=self.trace1_color), # color=numeric_df[numeric_columns[0]]),
+                                                showlegend=True,
+                                                name="non-outlier")
+
+        # Add a second scatter trace with markers only for z = 1
+        trace2 = go.Scatter(x=self.df_copy.loc[self.chosen_color_column == 1, 'x'], 
+                                    y=self.df_copy.loc[self.chosen_color_column == 1, 'y1'],
+                                    mode='markers', 
+                                    selected_marker_color = "orange",
+                                    visible=True,
+                                    opacity=1.0,
+                                    marker=dict(size=10, 
+                                                colorscale=["blue", "green", "red"], 
+                                                color=self.trace2_color), #  numeric_df[numeric_columns[0]]),
+                                                marker_symbol="x", 
+                                                showlegend=True,
+                                                name="outlier")
         
-        scatter = self.f.data[0]
-        scatter.marker.opacity = 0.5
+        trace1.hovertemplate = '<b>Trace 1</b><br>X: %{x}<br>Y: %{y}'
+        trace2.hovertemplate = '<b>Trace 2</b><br>X: %{x}<br>Y: %{y}'
+        
+        self.f = go.FigureWidget(data=[trace1, trace2])
+
+        # Customized legend
+        self.f.add_trace(go.Scatter(y=[None], mode='markers',
+                         marker=dict(symbol='circle', color='blue', size=10),
+                         name='Not manually chosen'
+                         ))
+        self.f.add_trace(go.Scatter(y=[None], mode='markers',
+                         marker=dict(symbol='triangle-up', color='green', size=10),
+                         name='Not outlier',
+                         ))
+        self.f.add_trace(go.Scatter(y=[None], mode='markers',
+                         marker=dict(symbol='x', color='red', size=10),
+                         name='Outlier',
+                         ))
+        self.f.data[0].showlegend = False
+        self.f.data[1].showlegend = False
         
         self.axis_dropdowns = interactive(self.update_axes, yaxis = self.columns, xaxis = self.columns, color = numeric_columns)
-        scatter.on_selection(self.selection_fn)
+        
+        self.f.data[0].on_selection(self.selection_fn)
+        self.f.data[1].on_selection(self.selection_fn)
         
         # Put everything together
         return VBox((HBox(self.axis_dropdowns.children),self.f))
@@ -65,68 +107,86 @@ class interactive_data_chooser:
         with self.f.batch_update():
             self.f.layout.xaxis.title = xaxis
             self.f.layout.yaxis.title = yaxis
+   
+    def update_manual_outlier(self, row):
+        row["manual_outlier"] = 1 if self.df_copy[row[0]]["manual_outlier"] != 1 else 0
+        return row
+    
+    # def multiply_rows(row): Use this solution instead of iterrows
+        # return row['column1'] * row['column2']
+
+        # my_df['multiplied'] = my_df.apply(multiply_rows,axis=1)
+
+    def update_temp_df_last_sel(self, row, last_selected):
+        row["last_selected"] = last_selected
+        return row        
+
+    def remove_selected_data_points(self, current_list_x, current_list_y, points):
+        current_list_x = np.delete(current_list_x, points.point_inds)
+        current_list_y = np.delete(current_list_y, points.point_inds)
+        return current_list_x, current_list_y
+
+    def get_x_and_y_values_current_trace(self, trace):
+        trace_value = 0 if trace.name == "non-outlier" else 1
+        x_values = np.array(self.f.data[trace_value].x)
+        y_values = np.array(self.f.data[trace_value].y)
+        return x_values, y_values
+    
+    def get_x_and_y_values_other_trace(self, trace):
+        trace_value = 0 if trace.name == "outlier" else 1
+        x_values = np.array(self.f.data[trace_value].x)
+        y_values = np.array(self.f.data[trace_value].y)
+        return x_values, y_values
+    
+    def append_selected_data_points(self, current_list_x, current_list_y, points):
+        appended_list_x = np.append(current_list_x, points.xs)
+        appended_list_y = np.append(current_list_y, points.ys)
+        return appended_list_x, appended_list_y
 
     def selection_fn(self,trace,points,selector):
-        """
-        Keeping track of points manually selected and change values in column ["manual_outlier"].
-        Value for points not manually selected is -1. If selected to be an outlier, value is set to 1.
-        If selected again not to be an outlier, value is set to 0. Previous value is stored for future 
-        possibility to undo selection. 
-
-        Each selection is stored in a temp_df and all temp_df's are stored in self.outlier_df.
-        The dataframe drop_duplicates_df is the df which will be used to train the model, where only 
-        the last manually made change to a data point is included. 
-
-        The plot is updated after selection.
-        """
-        temp_df = self.df_copy.loc[points.point_inds]
         
-        # If there will be an undo button, we need to keep track of number of points selected each time
-        last_selected = len(temp_df)
+        # Store the selected data points in temp_df
+        temp_df = self.df_copy[self.df_copy["x"].isin(points.point_inds)]
+        self.chosen_color_column = self.axis_dropdowns.children[2].value 
         
-        for i in temp_df.iterrows():
-            idx = i[0]
-            temp_df.at[idx, "last_selected"] = last_selected
+        """ temp_df["last_selected"] = temp_df.apply(lambda row: self.update_temp_df_last_sel(row, last_selected), axis=1) """
+        # Get the selected points based on x values
+        # TODO: Should I change to index instead?
+        # TODO: Skip temp_df and change df_copy to df
+        # TODO: Ändra namn på trace1 och trace2 samt trace1_color
+        for x_value in points.xs:  
+            """ temp_df.at[idx, "last_selected"] = last_selected """
             # This is needed for keeping track of the changes
-            temp_df.at[idx, "manual_outlier"] = 1 if self.df_copy.at[idx, "manual_outlier"] != 1 else 0
+            temp_df.at[x_value, "manual_outlier"] = 1 if self.df_copy.at[x_value, "manual_outlier"] != 1 else 0
             # This is needed for displaying values in the plot
-            self.df_copy.at[idx, "manual_outlier"] = 1 if self.df_copy.at[idx, "manual_outlier"] != 1 else 0
+            self.df_copy.at[x_value, "manual_outlier"] = 1 if (self.df_copy.at[x_value, "manual_outlier"] != 1) else 0
 
-        self.outlier_df = pd.concat([self.outlier_df, temp_df], ignore_index=False, axis=0)
+        
+        # List only values in manual outlier for trace1 to get a correct plot
+        self.trace1_color = [x for x in self.df_copy["manual_outlier"] if x != 1]
 
-        no_points = "point" if last_selected == 1 else "points"
-        print(f"Selected {last_selected} new {no_points}. Total: {len(self.outlier_df)}")
+        # Add selected data points to the other trace and update it
+        other_trace_x, other_trace_y = self.get_x_and_y_values_other_trace(trace)
+        other_trace_x, other_trace_y = self.append_selected_data_points(other_trace_x, other_trace_y, points)
+        other_trace_name = "outlier" if trace.name == "non-outlier" else "non-outlier"
 
-        drop_duplicates_df = self.outlier_df.drop_duplicates(subset=["x", "y1"], keep="last")
-        drop_duplicates_df.sort_values(by=["x"], inplace=True)
+        # If data points in "outlier" have been added to "non-outlier"-trace, then sort on x axis
+        if trace.name == "outlier":
+            sort_indices = np.argsort(other_trace_x)
+            other_trace_x = other_trace_x[sort_indices]
+            other_trace_y = other_trace_y[sort_indices]
 
-        print(f"Unique points selected ({len(drop_duplicates_df)}):")
-        for i in drop_duplicates_df.iterrows():
-            outlier = "yes" if i[1][3] == 1 else "no"
-            print(f"x: {int(i[1][0])}, y1: {int(i[1][1])}, outlier: {outlier}")
+        self.f.update_traces(x=other_trace_x, y=other_trace_y, selector=dict(name=other_trace_name))
 
-        # Update plot with chosen column
-        chosen_color_column = self.axis_dropdowns.children[2].value
-        trace.update(marker_color=self.df_copy[chosen_color_column])
-
-    def clear_selection(self):
-        self.outlier_df = self.outlier_df.iloc[0:0]
-    
-    def show_selected(self):
-        for index, row in self.outlier_df.iterrows():
-            plt.figure()
-            plt.imshow(plt.imread(row['file']))
-            plt.title(f"{row['time']}, wl: {row['wl']}, turb_s: {row['turb_sensor']}, turb_p: {row['turb_post']}")
-
-    # create train model function based on outlier status in self.df
-
-    # visualize result in graph
-
-    # function to mark point as non-outlier DONE
-
-    # button to undo choice
-
-    # button to confirm (then train model), disable if not choosen areas == 1
+        # Remove selected data points from current trace and update it
+        trace_x, trace_y = self.get_x_and_y_values_current_trace(trace)
+        trace_x, trace_y = self.remove_selected_data_points(trace_x, trace_y, points)
+        self.f.update_traces(x=trace_x, y=trace_y, selector=dict(name=trace.name))
+        
+        # Update marker symbol in trace1
+        symbols = {-1: "circle", 0: "triangle-up"}
+        marker_symbols = [symbols[i] for i in self.trace1_color]
+        self.f.update_traces(marker_color=self.trace1_color, marker_symbol=marker_symbols, selector=dict(name="non-outlier")) 
 
 def create_fake_df(n):
     """
