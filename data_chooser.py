@@ -32,7 +32,10 @@ class interactive_data_chooser:
         self.columns = columns
         self.df_copy["manual_outlier"] = -1
         self.df_copy["model_outlier"] = 0
-
+        # Funktion som returnerar anomalies_df
+        # self.df_copy["model_outlier"] 
+        # self.df_copy[self.df_copy["Date/Time"] == anomalies["Date/Time"]]["model_outlier"] = 1
+        # Testa i debug console
         self.axis_dropdowns = None
         self.chosen_color_column = self.df_copy["manual_outlier"]
         self.trace1_color = None
@@ -43,9 +46,9 @@ class interactive_data_chooser:
         numeric_df = self.df_copy.select_dtypes(include=np.number)
         numeric_columns = numeric_df.columns
 
-        # Create the scatter plot with markers and lines for z < 1
-        trace1 = go.Scatter(x=self.df_copy.loc[self.chosen_color_column < 1, 'x'], 
-                                    y=self.df_copy.loc[self.chosen_color_column < 1, 'y1'],
+        # Create the scatter trace with markers and lines for z < 1
+        trace1 = go.Scatter(x=self.df_copy[self.chosen_color_column < 1]['Date/Time'], 
+                                    y=self.df_copy[self.chosen_color_column < 1]['Water level, Nap (cm)'],
                                     mode='markers+lines', 
                                     selected_marker_color = "orange",
                                     visible=True,
@@ -57,8 +60,8 @@ class interactive_data_chooser:
                                                 name="non-outlier")
 
         # Add a second scatter trace with markers only for z = 1
-        trace2 = go.Scatter(x=self.df_copy.loc[self.chosen_color_column == 1, 'x'], 
-                                    y=self.df_copy.loc[self.chosen_color_column == 1, 'y1'],
+        trace2 = go.Scatter(x=self.df_copy[self.chosen_color_column == 1]['Date/Time'], 
+                                    y=self.df_copy[self.chosen_color_column == 1]['Water level, Nap (cm)'],
                                     mode='markers', 
                                     selected_marker_color = "orange",
                                     visible=True,
@@ -159,6 +162,7 @@ class interactive_data_chooser:
             # This is needed for keeping track of the changes
             temp_df.at[x_value, "manual_outlier"] = 1 if self.df_copy.at[x_value, "manual_outlier"] != 1 else 0
             # This is needed for displaying values in the plot
+            # Override model_outlier when != manual_outlier fundera på var den ska vara! 
             self.df_copy.at[x_value, "manual_outlier"] = 1 if (self.df_copy.at[x_value, "manual_outlier"] != 1) else 0
 
         
@@ -209,3 +213,11 @@ def create_fake_df(n):
     df = pd.DataFrame(int_dict)
     return df
 
+
+
+
+if __name__ == "__main__":
+    df = pd.read_csv("data/manipulated_data.csv", delimiter=";", header=3)#, index_col="Date/Time") 
+    df["Date/Time"] = pd.to_datetime(df["Date/Time"])
+    chooser = interactive_data_chooser(df, df.columns)
+    chooser.activate_plot()
