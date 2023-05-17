@@ -1,7 +1,6 @@
 ## LSTM Autoencoder for anomaly detection/outlier plotting 
-#### This repository contains two main parts: 
-1. one with the code to train and evaluate a lstm model (lstm.ipynb), and 
-2. one where the model is implemented in a Plotly FigureWidget Scatter plot (testing_notebook.ipynb).
+#### This repository consists of two main parts: 
+1. lstm.ipynb: This notebook contains the code for training and evaluating an LSTM model. It utilizes the code provided in the following repository: https://github.com/curiousily/Deep-Learning-For-Hackers/blob/master/14.time-series-anomaly-detection.ipynb. The LSTM model is designed for anomaly detection in time series data.
+2. testing_notebook.ipynb: In this notebook, the trained LSTM model is implemented within a Plotly FigureWidget Scatter plot. The Scatter plot is interactive, allowing you to select data points and manually classify them as outliers or non-outliers. This feature provides a convenient way to visualize and analyze the anomalies detected by the LSTM model.
 
-#### The code in lstm.ipynb comes from https://github.com/curiousily/Deep-Learning-For-Hackers/blob/master/14.time-series-anomaly-detection.ipynb
-#### The FigureWidget Scatter plot is an interactive plot where you can select data points to manually mark them as outliers or non-outliers. 
+By combining the LSTM autoencoder for anomaly detection with the interactive capabilities of the Plotly FigureWidget Scatter plot, this repository offers a comprehensive solution for detecting and analyzing outliers in time series data.
